@@ -80,6 +80,9 @@ void Game::NetworkUpdate(float dt, TankMessage data) {
 
 void Game::Render(sf::RenderWindow& window)
 {
+	//Fix A - what if we just don't render this...
+
+
 	window.draw(*background);
 	for (int i = 0; i < tanks.size(); i++) {
 		tanks.at(i)->Render(window);
@@ -91,6 +94,12 @@ void Game::AddTank(std::string body_tex, std::string barrel_tex, sf::Vector2f po
 	std::unique_ptr<Tank> tank = std::make_unique<Tank>(Tank(textures[body_tex], textures[barrel_tex]));
 	tank->position = position;
 	tanks.push_back(std::move(tank));
+}
+
+
+void Game::RemoveTank(int GID)
+{
+	tanks.erase(tanks.begin() + GID);
 }
 
 TankMessage Game::GetNetworkUpdate()

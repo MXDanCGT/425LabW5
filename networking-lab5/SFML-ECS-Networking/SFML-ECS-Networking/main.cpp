@@ -15,7 +15,7 @@
 
 int main() {
 	bool is_observer = false;
-	unsigned short observer_port = 53000;
+	unsigned short observer_port = 53000; //Hard coded socket goes here
 	unsigned short player_port = sf::Socket::AnyPort;
 
 	Utils::printMsg("Game startup...");
@@ -71,6 +71,11 @@ int main() {
 	// Container of player connections for Observer.
 	std::vector<Connection> player_connections;
 
+	//Store the last tank message we recieved - indexed the same as connections.
+	//This allows us to A - know the ID of the disconnect to remove the tank from its game loop
+	//and B - if the player reconnects we can start them with the data gathered from their most recent packet.
+	std::vector<TankMessage> LastRecievedTankMessage;
+
 	// Other game parameters.
 	float game_speed = 1.0f;
 	float send_rate = 0.1f;
@@ -120,6 +125,10 @@ int main() {
 				
 				// Add connection the vector.
 				player_connections.push_back({std::move(socket)});
+
+				LastRecievedTankMessage.push_back(TankMessage());
+
+
 				selector.add(*player_connections.back().socket); // Add to persistent selector
 				// Set the deafult connection state to NotReady.
 				player_connections.back().state = NotReady;
@@ -131,7 +140,7 @@ int main() {
 			}
 			
 			// Check which connections have some data waiting to be received from sockets.
-			if (selector.wait(sf::seconds(0.f))) {
+			if (selector.wait(sf::seconds(0.f))) { //Infinite wait - will chill here untill its done?
 				// If at least one of the sockets is ready to receive, check which ones are ready.
 				for (int i = 0; i < player_connections.size(); i++) {
 					if (selector.isReady(*player_connections.at(i).socket))
@@ -164,6 +173,9 @@ int main() {
 						packet >> message.x >> message.y;
 						// Use the message data to update the game.
 						game.NetworkUpdate(dt, message);
+
+
+						LastRecievedTankMessage.at(i) = message; //Is this kid of assigning ok for vectors?
 					}
 					else if (status == sf::Socket::Status::Disconnected) {
 						Utils::printMsg("Player disconnected: "
@@ -171,9 +183,16 @@ int main() {
 							+ ":"
 							+ std::to_string(player_connections.at(i).socket->getRemotePort()), warning);
 
-						// For now just set the connection state to Disconnected. 
-						// FIXME: But we should also remove the inactive connection from the vector and remove the tank from the game.
-						player_connections.at(i).state = Disconnected;
+
+						//We want to store the last "tank message" state we succesfully had for this player, and then remove them!
+						//player_connections.at(i).state = Disconnected;
+					
+						//what if we just get rid of this tank?
+
+						selector.remove(*player_connections.at(i).socket);
+
+						player_connections.erase(player_connections.begin() + i);
+						game.RemoveTank(LastRecievedTankMessage.at(i).id);
 					}
 				}
 			}

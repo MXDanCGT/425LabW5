@@ -13,7 +13,14 @@ public:
 	void NetworkUpdate(float dt, TankMessage data);
 	void Render(sf::RenderWindow &window);
 	void AddTank(std::string body_tex, std::string barrel_tex, sf::Vector2f position);
+
+	//When a tank disconnects, remove the tank at the given index
+	void RemoveTank(int GID);
+
 	TankMessage GetNetworkUpdate();
+
+
+
 
 private:
 	// We can now have more thank 1 tank in the game.
