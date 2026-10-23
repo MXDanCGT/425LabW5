@@ -185,14 +185,13 @@ int main() {
 
 
 						//We want to store the last "tank message" state we succesfully had for this player, and then remove them!
-						//player_connections.at(i).state = Disconnected;
 					
 						//what if we just get rid of this tank?
-
-						selector.remove(*player_connections.at(i).socket);
-
-						player_connections.erase(player_connections.begin() + i);
 						game.RemoveTank(LastRecievedTankMessage.at(i).id);
+						selector.remove(*player_connections.at(i).socket);
+						//player_connections.at(i).state = Disconnected;
+						player_connections.at(i).socket->disconnect();
+						player_connections.erase(player_connections.begin() + i);
 					}
 				}
 			}
