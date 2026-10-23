@@ -112,7 +112,8 @@ int main() {
 		sf::Packet packet;
 		
 		
-		if (is_observer) {
+		if (is_observer) 
+		{
 			// Socket for communication with player
 			std::unique_ptr<sf::TcpSocket> socket = std::make_unique<sf::TcpSocket>();
 						
@@ -155,29 +156,34 @@ int main() {
 
 			// FIXME: we never remove disconnected players from the vector of connections. This will
 			// cause us to continue to update and draw them. Handle disconnections and fix this.
-			for (int i = 0; i < player_connections.size(); i++) {
+			for (int i = 0; i < player_connections.size(); i++) 
+			{
 				// FIXME: Recieve can fail, check for errors.
-				if (player_connections.at(i).state == Ready) {
-					sf::Socket::Status status = player_connections.at(i).socket->receive(packet);
-					if (status == sf::Socket::Status::Done) {
-						Utils::printMsg("Recieved message from: "
-							+ player_connections.at(i).socket->getRemoteAddress().value().toString()
-							+ ":"
-							+ std::to_string(player_connections.at(i).socket->getRemotePort()));
 
-						TankMessage message;
-						message.id = i;
-						// Read recieved data into TankMessage struct.
-						// FIXME: reading from packet can fail. Refer to documentation on how to
-						// handle errors and add error checking here.
-						packet >> message.x >> message.y;
-						// Use the message data to update the game.
-						game.NetworkUpdate(dt, message);
+				TankMessage message;
+				switch (player_connections.at(i).state)
+				{
+					case ConnState::Ready:
+						player_connections.at(i).socket->receive(packet);
+							Utils::printMsg("Recieved message from: "
+								+ player_connections.at(i).socket->getRemoteAddress().value().toString()
+								+ ":"
+								+ std::to_string(player_connections.at(i).socket->getRemotePort()));
+
+							message.id = i;
+							// Read recieved data into TankMessage struct.
+							// FIXME: reading from packet can fail. Refer to documentation on how to
+							// handle errors and add error checking here.
+							packet >> message.x >> message.y;
+							// Use the message data to update the game.
+							game.NetworkUpdate(dt, message);
 
 
-						LastRecievedTankMessage.at(i) = message; //Is this kid of assigning ok for vectors?
-					}
-					else if (status == sf::Socket::Status::Disconnected) {
+							LastRecievedTankMessage.at(i) = message; //Is this kid of assigning ok for vectors?
+							break;
+
+
+					case ConnState::Disconnected: //Gets here if nothing overwrites the default value
 						Utils::printMsg("Player disconnected: "
 							+ player_connections.at(i).socket->getRemoteAddress().value().toString()
 							+ ":"
@@ -185,14 +191,15 @@ int main() {
 
 
 						//We want to store the last "tank message" state we succesfully had for this player, and then remove them!
-					
+
 						//what if we just get rid of this tank?
 						game.RemoveTank(LastRecievedTankMessage.at(i).id);
 						selector.remove(*player_connections.at(i).socket);
-						//player_connections.at(i).state = Disconnected;
 						player_connections.at(i).socket->disconnect();
 						player_connections.erase(player_connections.begin() + i);
-					}
+
+						break;
+
 				}
 			}
 		}
